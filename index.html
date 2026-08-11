@@ -58,184 +58,166 @@
     </div></form>
   </div>
   <script>
-     <script>
-        const checklistItems = [
-          ['Are you fit for duty?', 'Team Member’s confirm they’re fit to perform work'],
-          ['Daily Stretching', 'Team Member’s complete adequate stretching'],
-          ['Radio Check', 'Unable to communicate if help is needed'],
-          ['Pre-Trip Vehicle Inspections', 'Deficient equipment'],
-          ['Environmental Checklist', 'Uncontrolled environmental risks'],
-          ['Risk Assessment Checklist', 'Eliminate and/or control hazards']
-        ];
+  const checklistItems = [
+    ['Are you fit for duty?', 'Team Member’s confirm they’re fit to perform work'],
+    ['Daily Stretching', 'Team Member’s complete adequate stretching'],
+    ['Radio Check', 'Unable to communicate if help is needed'],
+    ['Pre-Trip Vehicle Inspections', 'Deficient equipment'],
+    ['Environmental Checklist', 'Uncontrolled environmental risks'],
+    ['Risk Assessment Checklist', 'Eliminate and/or control hazards']
+  ];
 
-        const hazards = [
-          ['Chemical Incompatibilities'],
-          ['Entanglement and Crushing'],
-          ['Uncontrolled Release of Energy'],
-          ['Exposure to Hazardous Substances'],
-          ['Fall from Heights'],
-          ['Vehicle/Equipment Impact on Person'],
-          ['Contact with Electricity'],
-          ['Ground/Stockpile Failure'],
-          ['Hazardous Atmospheres'],
-          ['Hot/Molten Materials'],
-          ['Vehicle/Equipment Collision or Rollover'],
-          ['Rail Impact on Person'],
-          ['Confined Space'],
-          ['Rail Collision'],
-          ['Heat Stress & Weather'],
-          ['Drowning'],
-          ['Falling Objects'],
-          ['Fire/Explosion'],
-          ['Personnel Lifts/Hoisting'],
-          ['Lifting Operations']
-        ];
+  const hazards = [
+    ['Chemical Incompatibilities'],
+    ['Entanglement and Crushing'],
+    ['Uncontrolled Release of Energy'],
+    ['Exposure to Hazardous Substances'],
+    ['Fall from Heights'],
+    ['Vehicle/Equipment Impact on Person'],
+    ['Contact with Electricity'],
+    ['Ground/Stockpile Failure'],
+    ['Hazardous Atmospheres'],
+    ['Hot/Molten Materials'],
+    ['Vehicle/Equipment Collision or Rollover'],
+    ['Rail Impact on Person'],
+    ['Confined Space'],
+    ['Rail Collision'],
+    ['Heat Stress & Weather'],
+    ['Drowning'],
+    ['Falling Objects'],
+    ['Fire/Explosion'],
+    ['Personnel Lifts/Hoisting'],
+    ['Lifting Operations']
+  ];
 
-        const checklistRows = document.getElementById('checklistRows');
-        const hazardGrid = document.getElementById('hazardGrid');
-        const attendeeRows = document.getElementById('attendeeRows');
-        const jobRows = document.getElementById('jobRows');
-        const statusBox = document.getElementById('statusBox');
+  const checklistRows = document.getElementById('checklistRows');
+  const hazardGrid = document.getElementById('hazardGrid');
+  const attendeeRows = document.getElementById('attendeeRows');
+  const jobRows = document.getElementById('jobRows');
+  const statusBox = document.getElementById('statusBox');
 
-        // Build checklist rows
-        checklistItems.forEach((item, idx) => {
-          const row = document.createElement('div');
-          row.className = 'check-row';
-          row.innerHTML = `
-            <div class="tick-cell">
-              <input class="tick" type="checkbox" id="task-${idx}" name="task_${idx}" />
-            </div>
-            <div>${item[0]}</div>
-            <div>${item[1]}</div>
-          `;
-          checklistRows.appendChild(row);
-        });
+  checklistItems.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'check-row';
+    row.innerHTML = `
+      <div class="tick-cell">
+        <input class="tick" type="checkbox" id="task-${idx}" name="task_${idx}" />
+      </div>
+      <div>${item[0]}</div>
+      <div>${item[1]}</div>
+    `;
+    checklistRows.appendChild(row);
+  });
 
-        // Build job rows (fix duplicate name attributes)
-        for (let i = 0; i < 8; i++) {
-          const row = document.createElement('div');
-          row.className = 'job-row';
-          row.innerHTML = `
-            <div>
-              <input type="text" class="job-task" name="job_task_${i}" placeholder="Task ${i + 1}" />
-            </div>
-            <div>
-              <input type="text" class="job-review" name="job_review_${i}" placeholder="Enter SOP / JHA/ SHAPS" />
-            </div>
-          `;
-          jobRows.appendChild(row);
-        }
+  for (let i = 0; i < 8; i++) {
+    const row = document.createElement('div');
+    row.className = 'job-row';
+    row.innerHTML = `
+      <div>
+        <input type="text" class="job-task" name="job_task_${i}" placeholder="Task ${i + 1}" />
+      </div>
+      <div>
+        <input type="text" class="job-review" name="job_review_${i}" placeholder="Enter SOP / JHA/ SHAPS" />
+      </div>
+    `;
+    jobRows.appendChild(row);
+  }
 
-        const warningSvg = `
-          <svg viewBox="0 0 16 16" fill="#111" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/>
-            <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
-          </svg>
-        `;
+  const warningSvg = `
+    <svg viewBox="0 0 16 16" fill="#111" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/>
+      <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+    </svg>
+  `;
 
-        // --- EmailJS + PDF integration ---
+  const pdfBtn = document.getElementById('pdfBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const toolboxForm = document.getElementById('toolboxForm');
+  const fullReport = document.getElementById('full_report');
 
-        const pdfBtn = document.getElementById('pdfBtn');
-        const submitBtn = document.getElementById('submitBtn');
-        const toolboxForm = document.getElementById('toolboxForm');
-        const fullReport = document.getElementById('full_report');
+  const publicKeyInput = document.getElementById('publicKey');
+  const serviceIdInput = document.getElementById('serviceId');
+  const templateIdInput = document.getElementById('templateId');
 
-        const publicKeyInput = document.getElementById('publicKey');
-        const serviceIdInput = document.getElementById('serviceId');
-        const templateIdInput = document.getElementById('templateId');
+  const publicKey = publicKeyInput.value;
+  const serviceId = serviceIdInput.value;
+  const templateId = templateIdInput.value;
 
-        const publicKey = publicKeyInput.value;
-        const serviceId = serviceIdInput.value;
-        const templateId = templateIdInput.value;
+  emailjs.init({ publicKey });
 
-        // Initialize EmailJS for browser (required on all devices)
-        emailjs.init({ publicKey });
+  function updateStatus(message, ok = true) {
+    statusBox.textContent = message;
+    statusBox.className = ok ? 'ok' : 'bad';
+  }
 
-        function updateStatus(message, ok = true) {
-          statusBox.textContent = message;
-          statusBox.className = ok ? 'ok' : 'bad';
-        }
+  async function generatePdfReport() {
+    try {
+      updateStatus('Generating PDF, please wait...', true);
 
-        // Capture the page as a PDF and store base64 in full_report
-        async function generatePdfReport() {
-          try {
-            updateStatus('Generating PDF, please wait...', true);
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
+      const app = document.querySelector('.app');
+      const canvas = await html2canvas(app, { scale: 2, useCORS: true });
 
-            // Capture the app container
-            const app = document.querySelector('.app');
-            const canvas = await html2canvas(app, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgProps = pdf.getImageProperties(imgData);
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      const pdfDataUri = pdf.output('datauristring');
+      fullReport.value = pdfDataUri;
 
-            // Save the PDF as base64 string for EmailJS
-            const pdfDataUri = pdf.output('datauristring'); // "data:application/pdf;base64,..."
-            fullReport.value = pdfDataUri;
+      updateStatus('PDF generated and attached to report.', true);
+      return pdfDataUri;
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      updateStatus('PDF generation failed.', false);
+      throw err;
+    }
+  }
 
-            updateStatus('PDF generated and attached to report.', true);
-            return pdfDataUri;
-          } catch (err) {
-            console.error('PDF generation failed:', err);
-            updateStatus('PDF generation failed.', false);
-            throw err;
-          }
-        }
+  async function sendEmailWithReport() {
+    try {
+      updateStatus('Preparing report and sending email...', true);
+      await generatePdfReport();
 
-        async function sendEmailWithReport() {
-          try {
-            updateStatus('Preparing report and sending email...', true);
+      const result = await emailjs.sendForm(
+        serviceId,
+        templateId,
+        toolboxForm,
+        { publicKey }
+      );
 
-            // Ensure PDF is generated before sending
-            await generatePdfReport();
+      console.log('EmailJS success:', result);
+      updateStatus('Daily talk PDF and email sent successfully.', true);
+      alert('Email sent successfully!');
+    } catch (err) {
+      console.error('EmailJS failed:', err);
+      const msg = err?.text || err?.message || 'Unknown error';
+      updateStatus('PDF/Email failed: ' + msg, false);
+      alert('PDF/Email failed: ' + msg);
+    }
+  }
 
-            // Send the form via EmailJS; full_report is included as a hidden field
-            const result = await emailjs.sendForm(
-              serviceId,
-              templateId,
-              toolboxForm,
-              { publicKey }
-            );
+  pdfBtn.addEventListener('click', async () => {
+    try {
+      await generatePdfReport();
+      alert('PDF generated and attached to the form (for email).');
+    } catch {}
+  });
 
-            console.log('EmailJS success:', result);
-            updateStatus('Daily talk PDF and email sent successfully.', true);
-            alert('Email sent successfully!');
-          } catch (err) {
-            console.error('EmailJS failed:', err);
-            const msg = err?.text || err?.message || 'Unknown error';
-            updateStatus('PDF/Email failed: ' + msg, false);
-            alert('PDF/Email failed: ' + msg);
-          }
-        }
+  submitBtn.addEventListener('click', async () => {
+    await sendEmailWithReport();
+  });
 
-        // --- Button wiring ---
-
-        pdfBtn.addEventListener('click', async () => {
-          try {
-            await generatePdfReport();
-            alert('PDF generated and attached to the form (for email).');
-          } catch {
-            // Error already handled in generatePdfReport
-          }
-        });
-
-        submitBtn.addEventListener('click', async () => {
-          // Use async flow, works on desktop and iPad Safari
-          await sendEmailWithReport();
-        });
-
-        // Prevent default submit if someone presses Enter on the form
-        toolboxForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          sendEmailWithReport();
-        });
-      </script>
-    </body>
-  </html>
+  toolboxForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    sendEmailWithReport();
+  });
+</script>
+</body>
+</html>
