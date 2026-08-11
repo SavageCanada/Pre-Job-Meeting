@@ -130,7 +130,6 @@
   const pdfBtn = document.getElementById('pdfBtn');
   const submitBtn = document.getElementById('submitBtn');
   const toolboxForm = document.getElementById('toolboxForm');
-  const fullReport = document.getElementById('full_report');
 
   const publicKeyInput = document.getElementById('publicKey');
   const serviceIdInput = document.getElementById('serviceId');
@@ -147,43 +146,69 @@
     statusBox.className = ok ? 'ok' : 'bad';
   }
 
-  function collectSummaryText() {
-    const date = document.getElementById('date')?.value || '';
-    const supervisor = document.getElementById('supervisor')?.value || '';
-    const temperature = document.getElementById('temperature')?.value || '';
-    const wind = document.getElementById('wind')?.value || '';
-    const environmental = document.getElementById('environmental')?.value || '';
-    const crossover = document.getElementById('crossover')?.value || '';
-    const loto = document.getElementById('loto')?.value || '';
-    const commitments = document.getElementById('commitments')?.value || '';
-    const comments = document.getElementById('comments')?.value || '';
+  function collectData() {
+    return {
+      date: document.getElementById('date')?.value || '',
+      supervisor: document.getElementById('supervisor')?.value || '',
+      temperature: document.getElementById('temperature')?.value || '',
+      wind: document.getElementById('wind')?.value || '',
+      environmental: document.getElementById('environmental')?.value || '',
+      crossover: document.getElementById('crossover')?.value || '',
+      loto: document.getElementById('loto')?.value || '',
+      commitments: document.getElementById('commitments')?.value || '',
+      comments: document.getElementById('comments')?.value || ''
+    };
+  }
 
+  function buildTextReport(data) {
     return [
       'Pre Job Safety Meeting',
-      `Date: ${date}`,
-      `Supervisor: ${supervisor}`,
-      `Temperature: ${temperature}`,
-      `Wind: ${wind}`,
+      `Date: ${data.date}`,
+      `Supervisor: ${data.supervisor}`,
+      `Temperature: ${data.temperature}`,
+      `Wind: ${data.wind}`,
       '',
       'At-Risk Environmental Conditions:',
-      environmental || '(none)',
+      data.environmental || '(none)',
       '',
       'Vessel Cross-Over Notes:',
-      crossover || '(none)',
+      data.crossover || '(none)',
       '',
       'Active LOTOs / Maintenance:',
-      loto || '(none)',
+      data.loto || '(none)',
       '',
       'Safety Commitments/Observations:',
-      commitments || '(none)',
+      data.commitments || '(none)',
       '',
       'Additional Comments:',
-      comments || '(none)'
+      data.comments || '(none)'
     ].join('\n');
   }
 
-  async function generatePdfBlob() {
-    updateStatus('Generating PDF, please wait...', true);
+  // Compact PDF for email (text only, no signatures)
+  async function buildCompactPdfBlob(data) {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+
+    const margin = 40;
+    const width = 532;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.text('Pre Job Safety Meeting', margin, 40);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(11);
+
+    const lines = pdf.splitTextToSize(buildTextReport(data), width);
+    pdf.text(lines, margin, 68);
+
+    return pdf.output('blob');
+  }
+
+  // Full toolbox PDF with signatures (saved locally on iPad)
+  async function saveFullToolboxPdf() {
+    updateStatus('Generating full toolbox PDF...', true);
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -199,33 +224,29 @@
 
     pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
-    // Return as Blob for EmailJS attachment
-    const pdfBlob = pdf.output('blob');
-    updateStatus('PDF generated.', true);
-    return pdfBlob;
+    const data = collectData();
+    const fileName = `international-pier-toolbox-${data.date || new Date().toISOString().slice(0,10)}.pdf`;
+
+    pdf.save(fileName);
+    updateStatus('Full toolbox PDF saved.', true);
   }
 
   async function sendEmailWithReport() {
     try {
-      updateStatus('Preparing report and sending email...', true);
+      updateStatus('Preparing and sending email...', true);
 
-      const pdfBlob = await generatePdfBlob();
-
-      // Put only a small text summary in the hidden field
-      fullReport.value = collectSummaryText();
-
-      // Prepare EmailJS attachment
+      const data = collectData();
+      const pdfBlob = await buildCompactPdfBlob(data);
       const file = new File([pdfBlob], 'toolbox-report.pdf', { type: 'application/pdf' });
 
       const result = await emailjs.send(
         serviceId,
         templateId,
         {
-          // You can map form fields here if your template uses them, e.g.:
-          // date: document.getElementById('date').value,
-          // supervisor: document.getElementById('supervisor').value,
-          // full_report: fullReport.value,
-          // but DO NOT put the full PDF here.
+          // Map fields if your template uses them, e.g.:
+          // date: data.date,
+          // supervisor: data.supervisor,
+          // summary: buildTextReport(data)
         },
         {
           publicKey,
@@ -234,7 +255,7 @@
       );
 
       console.log('EmailJS success:', result);
-      updateStatus('Daily talk PDF and email sent successfully.', true);
+      updateStatus('Email sent successfully.', true);
       alert('Email sent successfully!');
     } catch (err) {
       console.error('EmailJS failed:', err);
@@ -244,15 +265,17 @@
     }
   }
 
+  // "Save Daily Talk PDF" = full toolbox PDF with signatures
   pdfBtn.addEventListener('click', async () => {
     try {
-      await generatePdfBlob();
-      alert('PDF generated (check your downloads if configured).');
+      await saveFullToolboxPdf();
+      alert('Full toolbox PDF saved on this device.');
     } catch (e) {
-      alert('PDF generation failed: ' + (e?.message || e));
+      alert('PDF save failed: ' + (e?.message || e));
     }
   });
 
+  // "Submit & Email" = compact text PDF via email
   submitBtn.addEventListener('click', async () => {
     await sendEmailWithReport();
   });
