@@ -127,8 +127,18 @@
     jobRows.appendChild(row);
   }
 
+  // --- Buttons ---
+
+  const themeBtn = document.getElementById('themeBtn');
+  const addAttendeeBtn = document.getElementById('addAttendeeBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
   const pdfBtn = document.getElementById('pdfBtn');
   const submitBtn = document.getElementById('submitBtn');
+  const adminToggle = document.getElementById('adminToggle');
+  const adminPanel = document.getElementById('adminPanel');
+  const sigToggle = document.getElementById('sigToggle');
+  const sigPanel = document.getElementById('sigPanel');
+
   const toolboxForm = document.getElementById('toolboxForm');
 
   const publicKeyInput = document.getElementById('publicKey');
@@ -229,6 +239,80 @@
     updateStatus('Full toolbox PDF saved.', true);
   }
 
+  function downloadBackup(data) {
+    const text = buildTextReport(data);
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `toolbox-backup-${data.date || 'export'}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function createAttendeeRow(index) {
+    const row = document.createElement('div');
+    row.className = 'sig-row';
+    row.innerHTML = `
+      <div><input type="text" class="sig-name" placeholder="Name" /></div>
+      <div><input type="text" class="sig-date" placeholder="Date" /></div>
+      <div class="sig-pad"><canvas></canvas></div>
+    `;
+    attendeeRows.appendChild(row);
+
+    const canvas = row.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    let drawing = false;
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function startDraw(e) {
+      drawing = true;
+      const { x, y } = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+
+    function moveDraw(e) {
+      if (!drawing) return;
+      const { x, y } = getPos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      e.preventDefault();
+    }
+
+    function endDraw() {
+      drawing = false;
+    }
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', moveDraw);
+    canvas.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', moveDraw, { passive: false });
+    canvas.addEventListener('touchend', endDraw, { passive: false });
+  }
+
   async function sendEmailWithReport() {
     try {
       updateStatus('Preparing and sending email...', true);
@@ -236,19 +320,18 @@
       const data = collectData();
       const pdfBlob = await buildCompactPdfBlob(data);
 
-      // Convert blob to base64 data URL for EmailJS
       const base64 = await new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result); // data:application/pdf;base64,...
+        reader.onloadend = () => resolve(reader.result);
         reader.readAsDataURL(pdfBlob);
       });
 
       const params = {
-        // Map these to your template variables if needed, e.g.:
+        // Map these if your template uses them:
         // date: data.date,
         // supervisor: data.supervisor,
         // message: buildTextReport(data),
-        pdf_attachment: base64 // custom variable name; we’ll use it in options
+        pdf_attachment: base64
       };
 
       const result = await emailjs.send(
@@ -278,6 +361,28 @@
     }
   }
 
+  // Toggle theme
+  themeBtn.addEventListener('click', () => {
+    const root = document.documentElement;
+    root.setAttribute(
+      'data-theme',
+      root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+    );
+  });
+
+  // Add attendee
+  addAttendeeBtn.addEventListener('click', () => {
+    createAttendeeRow(document.querySelectorAll('.sig-row').length);
+  });
+
+  // Download backup
+  downloadBtn.addEventListener('click', () => {
+    const data = collectData();
+    downloadBackup(data);
+    alert('Backup downloaded.');
+  });
+
+  // Save Daily Talk PDF (full toolbox PDF with signatures)
   pdfBtn.addEventListener('click', async () => {
     try {
       await saveFullToolboxPdf();
@@ -287,6 +392,7 @@
     }
   });
 
+  // Submit & Email (compact text PDF as attachment)
   submitBtn.addEventListener('click', async () => {
     await sendEmailWithReport();
   });
@@ -295,6 +401,27 @@
     e.preventDefault();
     sendEmailWithReport();
   });
+
+  // Admin panel toggle
+  adminToggle.addEventListener('click', () => {
+    const unlocked = adminPanel.style.display === 'block';
+    adminPanel.style.display = unlocked ? 'none' : 'block';
+    adminToggle.textContent = unlocked ? 'Unlock admin settings' : 'Lock admin settings';
+  });
+
+  // Signature panel toggle
+  sigToggle.addEventListener('click', () => {
+    const showing = sigPanel.style.display === 'block';
+    sigPanel.style.display = showing ? 'none' : 'block';
+  });
+
+  // Set today’s date
+  document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+
+  // Create initial attendee rows
+  for (let i = 0; i < 15; i++) {
+    createAttendeeRow(i);
+  }
 </script>
 </body>
 </html>
