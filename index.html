@@ -58,7 +58,6 @@
     </div></form>
   </div>
   <script>
-  // Simple error trap to show what’s wrong on iPad
   window.addEventListener('error', (e) => {
     alert('Script error: ' + (e.message || 'unknown'));
   });
@@ -128,13 +127,6 @@
     jobRows.appendChild(row);
   }
 
-  const warningSvg = `
-    <svg viewBox="0 0 16 16" fill="#111" xmlns="http://www.w3.org/2000/svg">
-      <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/>
-      <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
-    </svg>
-  `;
-
   const pdfBtn = document.getElementById('pdfBtn');
   const submitBtn = document.getElementById('submitBtn');
   const toolboxForm = document.getElementById('toolboxForm');
@@ -155,46 +147,90 @@
     statusBox.className = ok ? 'ok' : 'bad';
   }
 
-  async function generatePdfReport() {
-    try {
-      updateStatus('Generating PDF, please wait...', true);
+  function collectSummaryText() {
+    const date = document.getElementById('date')?.value || '';
+    const supervisor = document.getElementById('supervisor')?.value || '';
+    const temperature = document.getElementById('temperature')?.value || '';
+    const wind = document.getElementById('wind')?.value || '';
+    const environmental = document.getElementById('environmental')?.value || '';
+    const crossover = document.getElementById('crossover')?.value || '';
+    const loto = document.getElementById('loto')?.value || '';
+    const commitments = document.getElementById('commitments')?.value || '';
+    const comments = document.getElementById('comments')?.value || '';
 
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
+    return [
+      'Pre Job Safety Meeting',
+      `Date: ${date}`,
+      `Supervisor: ${supervisor}`,
+      `Temperature: ${temperature}`,
+      `Wind: ${wind}`,
+      '',
+      'At-Risk Environmental Conditions:',
+      environmental || '(none)',
+      '',
+      'Vessel Cross-Over Notes:',
+      crossover || '(none)',
+      '',
+      'Active LOTOs / Maintenance:',
+      loto || '(none)',
+      '',
+      'Safety Commitments/Observations:',
+      commitments || '(none)',
+      '',
+      'Additional Comments:',
+      comments || '(none)'
+    ].join('\n');
+  }
 
-      const app = document.querySelector('.app');
-      const canvas = await html2canvas(app, { scale: 2, useCORS: true });
+  async function generatePdfBlob() {
+    updateStatus('Generating PDF, please wait...', true);
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const imgProps = pdf.getImageProperties(imgData);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    const app = document.querySelector('.app');
+    const canvas = await html2canvas(app, { scale: 2, useCORS: true });
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const imgProps = pdf.getImageProperties(imgData);
 
-      const pdfDataUri = pdf.output('datauristring');
-      fullReport.value = pdfDataUri;
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-      updateStatus('PDF generated and attached to report.', true);
-      return pdfDataUri;
-    } catch (err) {
-      console.error('PDF generation failed:', err);
-      updateStatus('PDF generation failed.', false);
-      throw err;
-    }
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+    // Return as Blob for EmailJS attachment
+    const pdfBlob = pdf.output('blob');
+    updateStatus('PDF generated.', true);
+    return pdfBlob;
   }
 
   async function sendEmailWithReport() {
     try {
       updateStatus('Preparing report and sending email...', true);
-      await generatePdfReport();
 
-      const result = await emailjs.sendForm(
+      const pdfBlob = await generatePdfBlob();
+
+      // Put only a small text summary in the hidden field
+      fullReport.value = collectSummaryText();
+
+      // Prepare EmailJS attachment
+      const file = new File([pdfBlob], 'toolbox-report.pdf', { type: 'application/pdf' });
+
+      const result = await emailjs.send(
         serviceId,
         templateId,
-        toolboxForm,
-        { publicKey }
+        {
+          // You can map form fields here if your template uses them, e.g.:
+          // date: document.getElementById('date').value,
+          // supervisor: document.getElementById('supervisor').value,
+          // full_report: fullReport.value,
+          // but DO NOT put the full PDF here.
+        },
+        {
+          publicKey,
+          attachments: [file]
+        }
       );
 
       console.log('EmailJS success:', result);
@@ -210,9 +246,11 @@
 
   pdfBtn.addEventListener('click', async () => {
     try {
-      await generatePdfReport();
-      alert('PDF generated and attached to the form (for email).');
-    } catch {}
+      await generatePdfBlob();
+      alert('PDF generated (check your downloads if configured).');
+    } catch (e) {
+      alert('PDF generation failed: ' + (e?.message || e));
+    }
   });
 
   submitBtn.addEventListener('click', async () => {
