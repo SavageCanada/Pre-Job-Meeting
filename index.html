@@ -185,7 +185,6 @@
     ].join('\n');
   }
 
-  // Compact PDF for email (text only, no signatures)
   async function buildCompactPdfBlob(data) {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
@@ -206,7 +205,6 @@
     return pdf.output('blob');
   }
 
-  // Full toolbox PDF with signatures (saved locally on iPad)
   async function saveFullToolboxPdf() {
     updateStatus('Generating full toolbox PDF...', true);
 
@@ -237,20 +235,35 @@
 
       const data = collectData();
       const pdfBlob = await buildCompactPdfBlob(data);
-      const file = new File([pdfBlob], 'toolbox-report.pdf', { type: 'application/pdf' });
+
+      // Convert blob to base64 data URL for EmailJS
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result); // data:application/pdf;base64,...
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      const params = {
+        // Map these to your template variables if needed, e.g.:
+        // date: data.date,
+        // supervisor: data.supervisor,
+        // message: buildTextReport(data),
+        pdf_attachment: base64 // custom variable name; we’ll use it in options
+      };
 
       const result = await emailjs.send(
         serviceId,
         templateId,
-        {
-          // Map fields if your template uses them, e.g.:
-          // date: data.date,
-          // supervisor: data.supervisor,
-          // summary: buildTextReport(data)
-        },
+        params,
         {
           publicKey,
-          attachments: [file]
+          attachments: [
+            {
+              data: base64,
+              name: 'toolbox-report.pdf',
+              type: 'application/pdf'
+            }
+          ]
         }
       );
 
@@ -265,7 +278,6 @@
     }
   }
 
-  // "Save Daily Talk PDF" = full toolbox PDF with signatures
   pdfBtn.addEventListener('click', async () => {
     try {
       await saveFullToolboxPdf();
@@ -275,7 +287,6 @@
     }
   });
 
-  // "Submit & Email" = compact text PDF via email
   submitBtn.addEventListener('click', async () => {
     await sendEmailWithReport();
   });
