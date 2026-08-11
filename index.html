@@ -58,6 +58,11 @@
     </div></form>
   </div>
   <script>
+  // Simple error trap to show what’s wrong on iPad
+  window.addEventListener('error', (e) => {
+    alert('Script error: ' + (e.message || 'unknown'));
+  });
+
   const checklistItems = [
     ['Are you fit for duty?', 'Team Member’s confirm they’re fit to perform work'],
     ['Daily Stretching', 'Team Member’s complete adequate stretching'],
