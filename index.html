@@ -181,33 +181,33 @@
 document.getElementById('submitBtn').addEventListener('click', async () => {
   const data = collectData();
 
-  document.getElementById('full_report').value =
-    buildTextRecord(data);
+  document.getElementById('full_report').value = buildTextRecord(data);
 
+  // Optional: still download the small txt backup if you want
   downloadBackup(data);
 
-  statusBox.innerHTML =
-    'Backup downloaded. Saving full toolbox PDF and sending email...';
+  statusBox.innerHTML = 'Sending email...';
 
   try {
-    // Saves the complete toolbox PDF, including signatures.
-    await saveToolboxPdf();
-
-    // Creates the existing compact PDF for EmailJS only.
+    // Create only the small text PDF for email attachment
     const pdfUri = await saveCompactPdf(data);
+
+    // Send email with small PDF, no full PDF download on tablet
     const response = await sendEmail(data, pdfUri);
 
     statusBox.innerHTML =
-      `<span class="ok">Full toolbox PDF saved and submission emailed successfully.</span>
+      `<span class="ok">Submission emailed successfully.</span>
        <br>Status: ${response.status} ${response.text}`;
+
+    alert('Email sent successfully.');
   } catch (err) {
     console.error(err);
 
     statusBox.innerHTML =
-      `<span class="bad">PDF/email failed.</span>
+      `<span class="bad">Email failed.</span>
        <br>Reason: ${err.message}`;
 
-    alert('PDF/email failed: ' + err.message);
+    alert('Email failed: ' + err.message);
   }
 });
 
