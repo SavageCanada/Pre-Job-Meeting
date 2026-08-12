@@ -178,35 +178,35 @@
   }
 
   // Submit & Email: no longer downloads the full PDF, only sends email + compact PDF
-  document.getElementById('submitBtn').addEventListener('click', async () => {
-    const data = collectData();
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const data = collectData();
 
-    document.getElementById('full_report').value =
-      buildTextRecord(data);
+  document.getElementById('full_report').value =
+    buildTextRecord(data);
 
-    downloadBackup(data);
+  downloadBackup(data);
+
+  statusBox.innerHTML =
+    'Backup downloaded. Sending email...';
+
+  try {
+    // Creates the compact PDF for EmailJS only (no local download).
+    const pdfUri = await saveCompactPdf(data);
+    const response = await sendEmail(data, pdfUri);
 
     statusBox.innerHTML =
-      'Backup downloaded. Sending email...';
+      `<span class="ok">Submission emailed successfully.</span>
+       <br>Status: ${response.status} ${response.text}`;
+  } catch (err) {
+    console.error(err);
 
-    try {
-      // Creates the compact PDF for EmailJS only (no local download).
-      const pdfUri = await saveCompactPdf(data);
-      const response = await sendEmail(data, pdfUri);
+    statusBox.innerHTML =
+      `<span class="bad">Email failed.</span>
+       <br>Reason: ${err.message}`;
 
-      statusBox.innerHTML =
-        `<span class="ok">Submission emailed successfully.</span>
-         <br>Status: ${response.status} ${response.text}`;
-    } catch (err) {
-      console.error(err);
-
-      statusBox.innerHTML =
-        `<span class="bad">Email failed.</span>
-         <br>Reason: ${err.message}`;
-
-      alert('Email failed: ' + err.message);
-    }
-  });
+    alert('Email failed: ' + err.message);
+  }
+});
 
   document.getElementById('addAttendeeBtn').addEventListener(
     'click',
