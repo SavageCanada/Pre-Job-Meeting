@@ -183,7 +183,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 
   document.getElementById('full_report').value = buildTextRecord(data);
 
-  // Optional: still download the small txt backup if you want
+  // Optional: keep the small txt backup download if you want
   downloadBackup(data);
 
   statusBox.innerHTML = 'Sending email...';
@@ -210,7 +210,6 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     alert('Email failed: ' + err.message);
   }
 });
-
   document.getElementById('addAttendeeBtn').addEventListener(
     'click',
     () => {
