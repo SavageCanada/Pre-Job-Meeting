@@ -187,24 +187,27 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   downloadBackup(data);
 
   statusBox.innerHTML =
-    'Backup downloaded. Sending email...';
+    'Backup downloaded. Saving full toolbox PDF and sending email...';
 
   try {
-    // Creates the compact PDF for EmailJS only (no local download).
+    // Saves the complete toolbox PDF, including signatures.
+    await saveToolboxPdf();
+
+    // Creates the existing compact PDF for EmailJS only.
     const pdfUri = await saveCompactPdf(data);
     const response = await sendEmail(data, pdfUri);
 
     statusBox.innerHTML =
-      `<span class="ok">Submission emailed successfully.</span>
+      `<span class="ok">Full toolbox PDF saved and submission emailed successfully.</span>
        <br>Status: ${response.status} ${response.text}`;
   } catch (err) {
     console.error(err);
 
     statusBox.innerHTML =
-      `<span class="bad">Email failed.</span>
+      `<span class="bad">PDF/email failed.</span>
        <br>Reason: ${err.message}`;
 
-    alert('Email failed: ' + err.message);
+    alert('PDF/email failed: ' + err.message);
   }
 });
 
