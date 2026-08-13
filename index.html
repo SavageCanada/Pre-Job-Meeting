@@ -70,231 +70,230 @@
     function collectData(){return{date:document.getElementById('date').value,supervisor:document.getElementById('supervisor').value,temperature:document.getElementById('temperature').value,wind:document.getElementById('wind').value,environmental:document.getElementById('environmental').value,crossover:document.getElementById('crossover').value,loto:document.getElementById('loto').value,commitments:document.getElementById('commitments').value,comments:document.getElementById('comments').value,checklist:[...document.querySelectorAll('#checklistRows .check-row')].map((row,i)=>({item:checklistItems[i][0],checked:row.querySelector('input').checked?'Yes':'No'})),jobs:[...document.querySelectorAll('.job-row')].map(row=>({task:row.querySelector('.job-task').value,review:row.querySelector('.job-review').value})).filter(x=>x.task||x.review),hazards:[...document.querySelectorAll('.hazard-check:checked')].map(x=>x.dataset.name),attendees:[...document.querySelectorAll('.sig-row')].map(row=>({name:row.querySelector('.attendee-name').value,date:row.querySelector('.attendee-date').value,signed:row.querySelector('canvas').dataset.signed==='yes'?'Yes':'No'})).filter(x=>x.name||x.signed==='Yes')}}
     function buildTextRecord(data){const lines=['INTERNATIONAL PIER - PRE JOB SAFETY MEETING & RISK ASSESSMENT','=========================================================',`Date: ${data.date}`,`Foreman/Supervisor: ${data.supervisor}`,'','PRE-START CHECKLIST'];data.checklist.forEach(x=>lines.push(`- ${x.item}: ${x.checked}`));lines.push('','WEATHER',`Temperature: ${data.temperature}`,`Wind: ${data.wind}`,`At-Risk Environmental Conditions: ${data.environmental}`,'','TODAY\'S JOB SCOPE');data.jobs.forEach((x,i)=>lines.push(`${i+1}. ${x.task} | Reviewed SOP/JHA/SHAPS: ${x.review}`));lines.push('',`Vessel Cross-Over Notes: ${data.crossover}`,`Active LOTOs/Maintenance Activity: ${data.loto}`,`Safety Commitment/Observations Discussed: ${data.commitments}`,`Additional Comments: ${data.comments}`,'','CRITICAL RISK MANAGEMENT');data.hazards.forEach(x=>lines.push(`- ${x}`));lines.push('','ATTENDEE SIGNATURES');data.attendees.forEach((x,i)=>lines.push(`${i+1}. ${x.name||'Unnamed'} | Date: ${x.date} | Signed: ${x.signed}`));return lines.join('\n')}
     function downloadBackup(data){const blob=new Blob([buildTextRecord(data)],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`international-pier-toolbox-${data.date||new Date().toISOString().slice(0,10)}.txt`;a.click();URL.revokeObjectURL(a.href)}
-    async function sendEmail(data, pdfUri) {
-  const publicKey = 'ahhqCEiAfD8eZydNy';
-  const serviceId = 'service_1f8qy6p';
-  const templateId = 'template_32rzxar';
+        async function sendEmail(data, pdfUri) {
+      const publicKey = 'ahhqCEiAfD8eZydNy';
+      const serviceId = 'service_1f8qy6p';
+      const templateId = 'template_32rzxar';
 
-  // Initialize EmailJS (v4)
-  emailjs.init({
-    publicKey,
-    blockHeadless: false,
-  });
+      emailjs.init({
+        publicKey,
+        blockHeadless: false,
+      });
 
-  const payload = {
-    // all form data
-    ...data,
+      const payload = {
+        ...data,
+        full_report: buildTextRecord(data),
+        pdf_attachment: pdfUri || '',
+        filename: 'daily-talk-sheet.pdf',
+      };
 
-    // full text body
-    full_report: buildTextRecord(data),
-
-    // compact PDF attachment as URI (matches parameter name in template)
-    pdf_attachment: pdfUri || '',
-
-    // filename shown for the attachment
-    filename: 'daily-talk-sheet.pdf',
-  };
-
-  const response = await emailjs.send(serviceId, templateId, payload);
-  return response;
-}
-
-  // Use the v4 call shape
-  const response = await emailjs.send(serviceId, templateId, payload);
-  return response;
-}
-    document.getElementById('downloadBtn').addEventListener('click',()=>{const data=collectData();downloadBackup(data);statusBox.innerHTML=`Backup downloaded to tablet. [web:105]\nAttendees: ${data.attendees.length} | Signed: ${data.attendees.filter(x=>x.signed==='Yes').length}`});
-    async function saveToolboxPdf(){
-  const data=collectData();
-  document.getElementById('full_report').value=buildTextRecord(data);
-  statusBox.innerHTML='Preparing toolbox PDF...';
-  const target=document.querySelector('.app');
-  const clone=target.cloneNode(true);
-  clone.classList.add('pdf-rendered');
-  clone.style.position='fixed';
-  clone.style.left='-10000px';
-  clone.style.top='0';
-  clone.style.width='795px';
-  clone.style.background='#fff';
-  clone.querySelectorAll('button').forEach(b=>b.style.display='none');
-  clone.querySelectorAll('#sigPanel').forEach(el=>el.style.display='block');
-  const liveCanvases=[...document.querySelectorAll('canvas')];
-  const cloneCanvases=[...clone.querySelectorAll('canvas')];
-  cloneCanvases.forEach((c,i)=>{ const src=liveCanvases[i]; if(src && src.width && src.height){ try{ c.getContext('2d').drawImage(src,0,0); }catch(e){} } });
-  document.body.appendChild(clone);
-  try{
-    const canvas=await html2canvas(clone,{scale:1.5,useCORS:true,backgroundColor:'#ffffff',scrollY:0,windowWidth:clone.scrollWidth,windowHeight:clone.scrollHeight});
-    const { jsPDF }=window.jspdf;
-    const pdf=new jsPDF('p','pt','letter');
-    const pageWidth=pdf.internal.pageSize.getWidth();
-    const pageHeight=pdf.internal.pageSize.getHeight();
-    const margin=18;
-    const usableWidth=pageWidth-(margin*2);
-    const usableHeight=pageHeight-(margin*2);
-    const pageCanvasHeight=Math.floor(canvas.width*(usableHeight/usableWidth));
-    let renderedHeight=0;
-    while(renderedHeight < canvas.height){
-      const slice=document.createElement('canvas');
-      slice.width=canvas.width;
-      slice.height=Math.min(pageCanvasHeight, canvas.height-renderedHeight);
-      const ctx=slice.getContext('2d');
-      ctx.fillStyle='#fff';
-      ctx.fillRect(0,0,slice.width,slice.height);
-      ctx.drawImage(canvas,0,renderedHeight,slice.width,slice.height,0,0,slice.width,slice.height);
-      const sliceData=slice.toDataURL('image/png');
-      const sliceHeight=usableWidth*slice.height/slice.width;
-      if(renderedHeight>0) pdf.addPage();
-      pdf.addImage(sliceData,'PNG',margin,margin,usableWidth,sliceHeight,undefined,'FAST');
-      renderedHeight += slice.height;
+      const response = await emailjs.send(serviceId, templateId, payload);
+      return response;
     }
-    pdf.save(`international-pier-toolbox-${data.date||new Date().toISOString().slice(0,10)}.pdf`);
-    statusBox.innerHTML='<span class="ok">Toolbox PDF saved successfully.</span>';
-  } finally {
-    clone.remove();
-  }
-}
-document.getElementById('submitBtn').addEventListener('click', async () => {
-  const data = collectData();
 
-  // Put the full text report into the hidden field (if you use it in the template)
-  document.getElementById('full_report').value = buildTextRecord(data);
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const data = collectData();
+      downloadBackup(data);
+      statusBox.innerHTML =
+        `Backup downloaded to tablet.\nAttendees: ${data.attendees.length} | Signed: ${data.attendees.filter(x => x.signed === 'Yes').length}`;
+    });
 
-  // Optional local text backup
-  downloadBackup(data);
+    async function saveToolboxPdf() {
+      const data = collectData();
+      document.getElementById('full_report').value = buildTextRecord(data);
+      statusBox.innerHTML = 'Preparing toolbox PDF...';
 
-  statusBox.innerHTML = 'Backup downloaded. Sending email...';
+      const target = document.querySelector('.app');
+      const clone = target.cloneNode(true);
+      clone.classList.add('pdf-rendered');
+      clone.style.position = 'fixed';
+      clone.style.left = '-10000px';
+      clone.style.top = '0';
+      clone.style.width = '795px';
+      clone.style.background = '#fff';
+      clone.querySelectorAll('button').forEach(b => b.style.display = 'none');
+      clone.querySelectorAll('#sigPanel').forEach(el => el.style.display = 'block');
 
-  try {
-    // Create ONLY the compact text PDF for EmailJS attachment
-    const pdfUri = await saveCompactPdf(data);
+      const liveCanvases = [...document.querySelectorAll('canvas')];
+      const cloneCanvases = [...clone.querySelectorAll('canvas')];
+      cloneCanvases.forEach((c, i) => {
+        const src = liveCanvases[i];
+        if (src && src.width && src.height) {
+          try {
+            c.getContext('2d').drawImage(src, 0, 0);
+          } catch (e) {}
+        }
+      });
 
-    // Send email with clean text + compact PDF
-    const response = await sendEmail(data, pdfUri);
+      document.body.appendChild(clone);
 
-    statusBox.innerHTML =
-      `<span class="ok">Submission emailed successfully.</span>
-       <br>Status: ${response.status} ${response.text}`;
+      try {
+        const canvas = await html2canvas(clone, {
+          scale: 1.5,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          scrollY: 0,
+          windowWidth: clone.scrollWidth,
+          windowHeight: clone.scrollHeight
+        });
 
-    alert('Email sent successfully.');
-  } catch (err) {
-    console.error(err);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'pt', 'letter');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 18;
+        const usableWidth = pageWidth - (margin * 2);
+        const usableHeight = pageHeight - (margin * 2);
+        const pageCanvasHeight = Math.floor(canvas.width * (usableHeight / usableWidth));
 
-    statusBox.innerHTML =
-      `<span class="bad">Email failed.</span>
-       <br>Reason: ${err.message}`;
+        let renderedHeight = 0;
+        while (renderedHeight < canvas.height) {
+          const slice = document.createElement('canvas');
+          slice.width = canvas.width;
+          slice.height = Math.min(pageCanvasHeight, canvas.height - renderedHeight);
 
-    alert('Email failed: ' + err.message);
-  }
-});
+          const ctx = slice.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, slice.width, slice.height);
+          ctx.drawImage(
+            canvas,
+            0, renderedHeight, slice.width, slice.height,
+            0, 0, slice.width, slice.height
+          );
 
-function buildCompactPdfText(data) {
-  return [
-    'Pre Job Safety Meeting',
-    `Date: ${data.date || ''}`,
-    `Supervisor: ${data.supervisor || ''}`,
-    '',
-    'Full Report',
-    buildTextRecord(data)
-  ].join('\n');
-}
+          const sliceData = slice.toDataURL('image/png');
+          const sliceHeight = usableWidth * slice.height / slice.width;
 
-async function saveCompactPdf(data) {
-  const pdf = new window.jspdf.jsPDF({
-    unit: 'pt',
-    format: 'letter'
-  });
+          if (renderedHeight > 0) pdf.addPage();
+          pdf.addImage(sliceData, 'PNG', margin, margin, usableWidth, sliceHeight, undefined, 'FAST');
 
-  const margin = 40;
-  const width = 532;
+          renderedHeight += slice.height;
+        }
 
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(18);
-  pdf.text('Pre Job Safety Meeting', margin, 40);
+        pdf.save(`international-pier-toolbox-${data.date || new Date().toISOString().slice(0, 10)}.pdf`);
+        statusBox.innerHTML = '<span class="ok">Toolbox PDF saved successfully.</span>';
+      } finally {
+        clone.remove();
+      }
+    }
 
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(11);
+    document.getElementById('pdfBtn').addEventListener('click', async () => {
+      try {
+        await saveToolboxPdf();
+      } catch (err) {
+        console.error(err);
+        statusBox.innerHTML =
+          `<span class="bad">Toolbox PDF failed.</span> ${err.message || ''}`;
+        alert('Toolbox PDF failed.');
+      }
+    });
 
-  const lines = pdf.splitTextToSize(
-    buildCompactPdfText(data),
-    width
-  );
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const data = collectData();
 
-  pdf.text(lines, margin, 68);
+      document.getElementById('full_report').value = buildTextRecord(data);
+      downloadBackup(data);
 
-  // The compact PDF is used only as the EmailJS attachment.
-  // Do not use pdf.save() here.
-  return pdf.output('datauristring');
-}
+      statusBox.innerHTML = 'Backup downloaded. Sending email...';
 
-document.getElementById
+      try {
+        const pdfUri = await saveCompactPdf(data);
+        const response = await sendEmail(data, pdfUri);
 
-document.getElementById('addAttendeeBtn').addEventListener(
-  'click',
-  () => {
-    createAttendeeRow(
-      document.querySelectorAll('.sig-row').length
-    );
-  }
-);
+        statusBox.innerHTML =
+          `<span class="ok">Submission emailed successfully.</span>
+           <br>Status: ${response.status} ${response.text}`;
 
-document.getElementById('themeBtn').addEventListener(
-  'click',
-  () => {
-    const root = document.documentElement;
+        alert('Email sent successfully.');
+      } catch (err) {
+        console.error(err);
 
-    root.setAttribute(
-      'data-theme',
-      root.getAttribute('data-theme') === 'dark'
-        ? 'light'
-        : 'dark'
-    );
-  }
-);
+        statusBox.innerHTML =
+          `<span class="bad">Email failed.</span>
+           <br>Reason: ${err.message}`;
 
-const adminToggle =
-  document.getElementById('adminToggle');
+        alert('Email failed: ' + err.message);
+      }
+    });
 
-const adminPanel =
-  document.getElementById('adminPanel');
+    function buildCompactPdfText(data) {
+      return [
+        'Pre Job Safety Meeting',
+        `Date: ${data.date || ''}`,
+        `Supervisor: ${data.supervisor || ''}`,
+        '',
+        'Full Report',
+        buildTextRecord(data)
+      ].join('\n');
+    }
 
-adminToggle.addEventListener(
-  'click',
-  () => {
-    const unlocked =
-      adminPanel.style.display === 'block';
+    async function saveCompactPdf(data) {
+      const pdf = new window.jspdf.jsPDF({
+        unit: 'pt',
+        format: 'letter'
+      });
 
-    adminPanel.style.display =
-      unlocked ? 'none' : 'block';
+      const margin = 40;
+      const width = 532;
 
-    adminToggle.textContent =
-      unlocked
-        ? 'Unlock admin settings'
-        : 'Lock admin settings';
-  }
-);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.text('Pre Job Safety Meeting', margin, 40);
 
-const sigToggle =
-  document.getElementById('sigToggle');
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(11);
 
-const sigPanel =
-  document.getElementById('sigPanel');
+      const lines = pdf.splitTextToSize(
+        buildCompactPdfText(data),
+        width
+      );
 
-sigToggle.addEventListener(
-  'click',
-  () => {
-    const showing =
-      sigPanel.style.display === 'block';
+      pdf.text(lines, margin, 68);
 
-    sigPanel.style.display =
-      showing ? 'none' : 'block';
-  }
-);
+      // Compact PDF is only used as EmailJS attachment
+      return pdf.output('datauristring');
+    }
 
-document.getElementById('date').value =
-  new Date().toISOString().slice(0, 10);
+    document.getElementById('addAttendeeBtn').addEventListener('click', () => {
+      createAttendeeRow(
+        document.querySelectorAll('.sig-row').length
+      );
+    });
 
-for (let i = 0; i < 15; i++) {
-  createAttendeeRow(i);
-}</script>
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const root = document.documentElement;
+      root.setAttribute(
+        'data-theme',
+        root.getAttribute('data-theme') === 'dark'
+          ? 'light'
+          : 'dark'
+      );
+    });
+
+    const adminToggle = document.getElementById('adminToggle');
+    const adminPanel = document.getElementById('adminPanel');
+
+    adminToggle.addEventListener('click', () => {
+      const unlocked = adminPanel.style.display === 'block';
+      adminPanel.style.display = unlocked ? 'none' : 'block';
+      adminToggle.textContent =
+        unlocked ? 'Unlock admin settings' : 'Lock admin settings';
+    });
+
+    const sigToggle = document.getElementById('sigToggle');
+    const sigPanel = document.getElementById('sigPanel');
+
+    sigToggle.addEventListener('click', () => {
+      const showing = sigPanel.style.display === 'block';
+      sigPanel.style.display = showing ? 'none' : 'block';
+    });
+
+    document.getElementById('date').value =
+      new Date().toISOString().slice(0, 10);
+
+    for (let i = 0; i < 15; i++) {
+      createAttendeeRow(i);
+    }
+  </script>
 </body>
 </html>
