@@ -70,22 +70,28 @@
     function collectData(){return{date:document.getElementById('date').value,supervisor:document.getElementById('supervisor').value,temperature:document.getElementById('temperature').value,wind:document.getElementById('wind').value,environmental:document.getElementById('environmental').value,crossover:document.getElementById('crossover').value,loto:document.getElementById('loto').value,commitments:document.getElementById('commitments').value,comments:document.getElementById('comments').value,checklist:[...document.querySelectorAll('#checklistRows .check-row')].map((row,i)=>({item:checklistItems[i][0],checked:row.querySelector('input').checked?'Yes':'No'})),jobs:[...document.querySelectorAll('.job-row')].map(row=>({task:row.querySelector('.job-task').value,review:row.querySelector('.job-review').value})).filter(x=>x.task||x.review),hazards:[...document.querySelectorAll('.hazard-check:checked')].map(x=>x.dataset.name),attendees:[...document.querySelectorAll('.sig-row')].map(row=>({name:row.querySelector('.attendee-name').value,date:row.querySelector('.attendee-date').value,signed:row.querySelector('canvas').dataset.signed==='yes'?'Yes':'No'})).filter(x=>x.name||x.signed==='Yes')}}
     function buildTextRecord(data){const lines=['INTERNATIONAL PIER - PRE JOB SAFETY MEETING & RISK ASSESSMENT','=========================================================',`Date: ${data.date}`,`Foreman/Supervisor: ${data.supervisor}`,'','PRE-START CHECKLIST'];data.checklist.forEach(x=>lines.push(`- ${x.item}: ${x.checked}`));lines.push('','WEATHER',`Temperature: ${data.temperature}`,`Wind: ${data.wind}`,`At-Risk Environmental Conditions: ${data.environmental}`,'','TODAY\'S JOB SCOPE');data.jobs.forEach((x,i)=>lines.push(`${i+1}. ${x.task} | Reviewed SOP/JHA/SHAPS: ${x.review}`));lines.push('',`Vessel Cross-Over Notes: ${data.crossover}`,`Active LOTOs/Maintenance Activity: ${data.loto}`,`Safety Commitment/Observations Discussed: ${data.commitments}`,`Additional Comments: ${data.comments}`,'','CRITICAL RISK MANAGEMENT');data.hazards.forEach(x=>lines.push(`- ${x}`));lines.push('','ATTENDEE SIGNATURES');data.attendees.forEach((x,i)=>lines.push(`${i+1}. ${x.name||'Unnamed'} | Date: ${x.date} | Signed: ${x.signed}`));return lines.join('\n')}
     function downloadBackup(data){const blob=new Blob([buildTextRecord(data)],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`international-pier-toolbox-${data.date||new Date().toISOString().slice(0,10)}.txt`;a.click();URL.revokeObjectURL(a.href)}
-    async function sendEmail(data,pdfUri){
-  // TEMPORARY: hard‑coded credentials for testing
-  const publicKey = 'ahhqCEiAfD8eZydNy';
-  const serviceId = 'service_1f8qy6p';
-  const templateId = 'template_32rzxar';
+    async function sendEmail(data, pdfUri) {
+  // Hard‑code your EmailJS credentials here for testing
+  const publicKey = 'YOUR_PUBLIC_KEY_HERE';
+  const serviceId = 'YOUR_SERVICE_ID_HERE';
+  const templateId = 'YOUR_TEMPLATE_ID_HERE';
 
-  emailjs.init({ publicKey });
+  // Initialize EmailJS (v4 style)
+  emailjs.init({
+    publicKey,
+    blockHeadless: false,
+  });
 
   const payload = {
     ...data,
     full_report: buildTextRecord(data),
     pdf_attachment: pdfUri ? pdfUri.split(',')[1] : '',
-    filename: `pre-job-safety-meeting-${data.date || new Date().toISOString().slice(0,10)}.pdf`
+    filename: `pre-job-safety-meeting-${data.date || new Date().toISOString().slice(0,10)}.pdf`,
   };
 
-  return emailjs.send(serviceId, templateId, payload);
+  // Use the v4 call shape
+  const response = await emailjs.send(serviceId, templateId, payload);
+  return response;
 }
     document.getElementById('downloadBtn').addEventListener('click',()=>{const data=collectData();downloadBackup(data);statusBox.innerHTML=`Backup downloaded to tablet. [web:105]\nAttendees: ${data.attendees.length} | Signed: ${data.attendees.filter(x=>x.signed==='Yes').length}`});
     async function saveToolboxPdf(){
