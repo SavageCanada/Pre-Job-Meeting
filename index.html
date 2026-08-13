@@ -71,23 +71,33 @@
     function buildTextRecord(data){const lines=['INTERNATIONAL PIER - PRE JOB SAFETY MEETING & RISK ASSESSMENT','=========================================================',`Date: ${data.date}`,`Foreman/Supervisor: ${data.supervisor}`,'','PRE-START CHECKLIST'];data.checklist.forEach(x=>lines.push(`- ${x.item}: ${x.checked}`));lines.push('','WEATHER',`Temperature: ${data.temperature}`,`Wind: ${data.wind}`,`At-Risk Environmental Conditions: ${data.environmental}`,'','TODAY\'S JOB SCOPE');data.jobs.forEach((x,i)=>lines.push(`${i+1}. ${x.task} | Reviewed SOP/JHA/SHAPS: ${x.review}`));lines.push('',`Vessel Cross-Over Notes: ${data.crossover}`,`Active LOTOs/Maintenance Activity: ${data.loto}`,`Safety Commitment/Observations Discussed: ${data.commitments}`,`Additional Comments: ${data.comments}`,'','CRITICAL RISK MANAGEMENT');data.hazards.forEach(x=>lines.push(`- ${x}`));lines.push('','ATTENDEE SIGNATURES');data.attendees.forEach((x,i)=>lines.push(`${i+1}. ${x.name||'Unnamed'} | Date: ${x.date} | Signed: ${x.signed}`));return lines.join('\n')}
     function downloadBackup(data){const blob=new Blob([buildTextRecord(data)],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`international-pier-toolbox-${data.date||new Date().toISOString().slice(0,10)}.txt`;a.click();URL.revokeObjectURL(a.href)}
     async function sendEmail(data, pdfUri) {
-  // Hard‑code your EmailJS credentials here for testing
-  const publicKey = 'YOUR_PUBLIC_KEY_HERE';
-  const serviceId = 'YOUR_SERVICE_ID_HERE';
-  const templateId = 'YOUR_TEMPLATE_ID_HERE';
+  const publicKey = 'ahhqCEiAfD8eZydNy';
+  const serviceId = 'service_1f8qy6p';
+  const templateId = 'template_32rzxar';
 
-  // Initialize EmailJS (v4 style)
+  // Initialize EmailJS (v4)
   emailjs.init({
     publicKey,
     blockHeadless: false,
   });
 
   const payload = {
+    // all form data
     ...data,
+
+    // full text body
     full_report: buildTextRecord(data),
-    pdf_attachment: pdfUri ? pdfUri.split(',')[1] : '',
-    filename: `pre-job-safety-meeting-${data.date || new Date().toISOString().slice(0,10)}.pdf`,
+
+    // compact PDF attachment as URI (matches parameter name in template)
+    pdf_attachment: pdfUri || '',
+
+    // filename shown for the attachment
+    filename: 'daily-talk-sheet.pdf',
   };
+
+  const response = await emailjs.send(serviceId, templateId, payload);
+  return response;
+}
 
   // Use the v4 call shape
   const response = await emailjs.send(serviceId, templateId, payload);
@@ -146,14 +156,19 @@
 document.getElementById('submitBtn').addEventListener('click', async () => {
   const data = collectData();
 
+  // Put the full text report into the hidden field (if you use it in the template)
   document.getElementById('full_report').value = buildTextRecord(data);
 
+  // Optional local text backup
   downloadBackup(data);
 
   statusBox.innerHTML = 'Backup downloaded. Sending email...';
 
   try {
+    // Create ONLY the compact text PDF for EmailJS attachment
     const pdfUri = await saveCompactPdf(data);
+
+    // Send email with clean text + compact PDF
     const response = await sendEmail(data, pdfUri);
 
     statusBox.innerHTML =
