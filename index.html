@@ -121,16 +121,32 @@
     clone.remove();
   }
 }
-document.getElementById('pdfBtn').addEventListener('click', async () => {
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const data = collectData();
+
+  document.getElementById('full_report').value = buildTextRecord(data);
+
+  downloadBackup(data);
+
+  statusBox.innerHTML = 'Backup downloaded. Sending email...';
+
   try {
-    await saveToolboxPdf();
+    const pdfUri = await saveCompactPdf(data);
+    const response = await sendEmail(data, pdfUri);
+
+    statusBox.innerHTML =
+      `<span class="ok">Submission emailed successfully.</span>
+       <br>Status: ${response.status} ${response.text}`;
+
+    alert('Email sent successfully.');
   } catch (err) {
     console.error(err);
 
     statusBox.innerHTML =
-      `<span class="bad">Toolbox PDF failed.</span> ${err.message || ''}`;
+      `<span class="bad">Email failed.</span>
+       <br>Reason: ${err.message}`;
 
-    alert('Toolbox PDF failed.');
+    alert('Email failed: ' + err.message);
   }
 });
 
